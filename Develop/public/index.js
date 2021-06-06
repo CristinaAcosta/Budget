@@ -1,5 +1,52 @@
 let transactions = [];
+let offlineDeposits   = []
+let offlineWithdraws  = []
 let myChart;
+
+if ( navigator.onLine != true ) {
+
+  let total     = localStorage.getItem("total")
+  let amount    = localStorage.getItem("amount")
+  let nameTrans = localStorage.getItem("nameTrans")
+
+  document.getElementById("t-name").value = nameTrans
+  document.getElementById("t-amount").value = amount
+  document.getElementById("total").value = total
+
+} else {
+
+  let offlineDepositsLocal  = localStorage.getItem("offlineDeposits")
+  let offlineWithdrawsLocal = localStorage.getItem("offlineWithdraws")
+
+  if ( offlineDepositsLocal ) {
+
+    offlineDepsosits = JSON.parse(offlineDeps)
+
+    //Make API request to update the database...
+    offlineDeposits.forEach( transaction => {
+      sendTransaction(true, transaction)
+    })
+
+    localStorage.setItem("offlineDeposits", null)
+  }
+
+  if ( offlineWithdrawsLocal ) {
+    offlineWithdraws = JSON.parse(offlineWithdrawsLocal)
+
+    //Make API request to update the database...
+    offlineWithdraws.forEach( transaction => {
+      sendTransaction(false, transaction)
+    })
+
+    localStorage.setItem("offlineWithdraws", null)
+  }
+
+
+  //If the user just came online...
+
+}
+
+
 
 fetch("/api/transaction")
   .then(response => {
@@ -14,11 +61,18 @@ fetch("/api/transaction")
     populateChart();
   });
 
+gTotal = 0 
+gNameTrans = ""
+gAmount = 0
+
 function populateTotal() {
   // reduce transaction amounts to a single total value
   let total = transactions.reduce((total, t) => {
     return total + parseInt(t.value);
   }, 0);
+
+  gTotal = total
+  localStorage.setItem("total", total)
 
   let totalEl = document.querySelector("#total");
   totalEl.textContent = total;
@@ -78,10 +132,15 @@ function populateChart() {
   });
 }
 
-function sendTransaction(isAdding) {
+function sendTransaction(isAdding, transaction=null) {
   let nameEl = document.querySelector("#t-name");
   let amountEl = document.querySelector("#t-amount");
   let errorEl = document.querySelector(".form .error");
+
+  if ( transaction ) {
+    nameEl    = { value: transaction.name }
+    amountEl  = { value: transaction.amount }
+  }
 
   // validate form
   if (nameEl.value === "" || amountEl.value === "") {
@@ -93,7 +152,7 @@ function sendTransaction(isAdding) {
   }
 
   // create record
-  let transaction = {
+   var transaction = {
     name: nameEl.value,
     value: amountEl.value,
     date: new Date().toISOString()
@@ -145,9 +204,35 @@ function sendTransaction(isAdding) {
 }
 
 document.querySelector("#add-btn").onclick = function() {
-  sendTransaction(true);
+  if ( navigator.onLine ) {
+
+    sendTransaction(true);
+
+  } else {
+
+    let nameEl    = document.querySelector("#t-name");
+    let amountEl  = document.querySelector("#t-amount");
+
+    const transaction = { name: nameEl.value, amount: amountEl.value }
+
+    offlineDeposits.push(transaction)
+    localStorage.setItem("offlineDeposits", JSON.stringify(offlineDeposits))
+  }
 };
 
 document.querySelector("#sub-btn").onclick = function() {
-  sendTransaction(false);
-};
+  if ( navigator.onLine ) {
+
+    sendTransaction(false);
+
+  } else {
+
+    let nameEl    = document.querySelector("#t-name");
+    let amountEl  = document.querySelector("#t-amount");
+
+    const transaction = { name: nameEl.value, amount: amountEl.value }
+
+    offlineWithdraws.push(transaction)
+    localStorage.setItem("offlineWithdraws", JSON.stringify(offlineWithdraws))
+  }
+}
