@@ -1,0 +1,5 @@
+Start mongo by:
+- sudo brew services start mongodb-community
+- mongo
+- use Transaction 
+
